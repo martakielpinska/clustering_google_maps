@@ -14,7 +14,6 @@ import 'package:sqflite/sqflite.dart';
 class ClusteringHelper {
   ClusteringHelper.forDB({
     @required this.dbTable,
-    @required this.getBitmapMarker,
     @required this.dbLatColumn,
     @required this.dbLongColumn,
     @required this.dbGeohashColumn,
@@ -30,8 +29,7 @@ class ClusteringHelper {
         assert(dbLatColumn != null),
         assert(aggregationSetup != null);
 
-  ClusteringHelper.forMemory(
-    this.getBitmapMarker, {
+  ClusteringHelper.forMemory({
     @required this.list,
     @required this.updateMarkers,
     this.maxZoomForAggregatePoints = 13.5,
@@ -81,10 +79,6 @@ class ClusteringHelper {
 
   //List of points for memory clustering
   List<LatLngAndGeohash> list;
-
-  //callback for getting custom marker
-
-  Function getBitmapMarker;
 
   //Call during the editing of CameraPosition
   //If you want updateMap during the zoom in/out set forceUpdate to true
@@ -250,8 +244,10 @@ class ClusteringHelper {
           bitmapDescriptor = BitmapDescriptor.defaultMarker;
         }
       } else {
-        bitmapDescriptor = await getMarkerBitmapDescriptor(
-            a.count.toString(), getColor(a.count));
+        // >1
+        final Uint8List markerIcon =
+            await getBytesFromCanvas(a.count.toString(), getColor(a.count));
+        bitmapDescriptor = BitmapDescriptor.fromBytes(markerIcon);
       }
       final MarkerId markerId = MarkerId(a.getId());
 
@@ -308,30 +304,31 @@ class ClusteringHelper {
     }
   }
 
-  Future<BitmapDescriptor> getMarkerBitmapDescriptor(
-      String text, MaterialColor color) async {
-    BitmapDescriptor bitmapDescriptor = await getBitmapMarker("light", text);
-    return bitmapDescriptor;
-    // final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
-    // final Canvas canvas = Canvas(pictureRecorder);
-    // final Paint paint1 = Paint()..color = color[400];
-    // final Paint paint2 = Paint()..color = color[300];
-    // final Paint paint3 = Paint()..color = color[100];
-    // final int size = aggregationSetup.markerSize;
-    // canvas.drawCircle(Offset(size / 2, size / 2), size / 2.0, paint3);
-    // canvas.drawCircle(Offset(size / 2, size / 2), size / 2.4, paint2);
-    // canvas.drawCircle(Offset(size / 2, size / 2), size / 3.3, paint1);
-    // TextPainter painter = TextPainter(textDirection: TextDirection.ltr);
-    // painter.text = TextSpan(
-    //   text: text,
-    //   style: TextStyle(
-    //       fontSize: size / 4, color: Colors.black, fontWeight: FontWeight.bold),
-    // );
-    // painter.layout();
-    // painter.paint(
-    //   canvas,
-    //   Offset(size / 2 - painter.width / 2, size / 2 - painter.height / 2),
-    // );
+  Future<Uint8List> getBytesFromCanvas(String text, MaterialColor color) async {
+    final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint1 = Paint()..color = color[400];
+    final Paint paint2 = Paint()..color = color[300];
+    final Paint paint3 = Paint()..color = color[100];
+    final int size = aggregationSetup.markerSize;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2.0, paint3);
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2.4, paint2);
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 3.3, paint1);
+    TextPainter painter = TextPainter(textDirection: TextDirection.ltr);
+    painter.text = TextSpan(
+      text: text,
+      style: TextStyle(
+          fontSize: size / 4, color: Colors.black, fontWeight: FontWeight.bold),
+    );
+    painter.layout();
+    painter.paint(
+      canvas,
+      Offset(size / 2 - painter.width / 2, size / 2 - painter.height / 2),
+    );
+
+    final img = await pictureRecorder.endRecording().toImage(size, size);
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    return data.buffer.asUint8List();
   }
 
   MaterialColor getColor(int count) {
