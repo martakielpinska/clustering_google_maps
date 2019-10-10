@@ -23,7 +23,7 @@ class ClusteringHelper {
     this.whereClause = "",
     @required this.aggregationSetup,
     this.maxZoomForAggregatePoints = 13.5,
-    this.genericPin,
+    this.bitmapAssetPathForSingleMarker,
   })  : assert(dbTable != null),
         assert(dbGeohashColumn != null),
         assert(dbLongColumn != null),
@@ -36,12 +36,9 @@ class ClusteringHelper {
     @required this.updateMarkers,
     this.maxZoomForAggregatePoints = 13.5,
     @required this.aggregationSetup,
-    this.genericPin,
+    this.bitmapAssetPathForSingleMarker,
   })  : assert(list != null),
         assert(aggregationSetup != null);
-
-  //Default light pin in custom style
-  BitmapDescriptor genericPin;
 
   //After this value the map show the single points without aggregation
   final double maxZoomForAggregatePoints;
@@ -62,7 +59,7 @@ class ClusteringHelper {
   String dbGeohashColumn;
 
   //Custom bitmap: string of assets position
-  // final String bitmapAssetPathForSingleMarker;
+  final String bitmapAssetPathForSingleMarker;
 
   //Custom bitmap: string of assets position
   final AggregationSetup aggregationSetup;
@@ -244,14 +241,19 @@ class ClusteringHelper {
       }());
 
       BitmapDescriptor bitmapDescriptor;
-      final MarkerId markerId = MarkerId(a.getId());
 
       if (a.count == 1) {
-        bitmapDescriptor = await getBitmapMarker("light", '', markerId.value);
+        if (bitmapAssetPathForSingleMarker != null) {
+          bitmapDescriptor =
+              BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker);
+        } else {
+          bitmapDescriptor = BitmapDescriptor.defaultMarker;
+        }
       } else {
-        bitmapDescriptor =
-            await getMarkerBitmapDescriptor(a.count.toString(), markerId.value);
+        bitmapDescriptor = await getMarkerBitmapDescriptor(
+            a.count.toString(), getColor(a.count));
       }
+      final MarkerId markerId = MarkerId(a.getId());
 
       final marker = Marker(
         markerId: markerId,
@@ -266,6 +268,11 @@ class ClusteringHelper {
   }
 
   updatePoints(double zoom) async {
+    assert(() {
+      print("update single points");
+      return true;
+    }());
+
     try {
       List<LatLngAndGeohash> listOfPoints;
       if (database != null) {
@@ -287,7 +294,9 @@ class ClusteringHelper {
           infoWindow: InfoWindow(
               title:
                   "${p.location.latitude.toStringAsFixed(2)},${p.location.longitude.toStringAsFixed(2)}"),
-          icon: genericPin,
+          icon: bitmapAssetPathForSingleMarker != null
+              ? BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker)
+              : BitmapDescriptor.defaultMarker,
         );
       }).toSet();
       updateMarkers(markers);
@@ -300,10 +309,29 @@ class ClusteringHelper {
   }
 
   Future<BitmapDescriptor> getMarkerBitmapDescriptor(
-      String text, String id) async {
-    BitmapDescriptor bitmapDescriptor =
-        await getBitmapMarker("light", text, id);
+      String text, MaterialColor color) async {
+    BitmapDescriptor bitmapDescriptor = await getBitmapMarker("light", text);
     return bitmapDescriptor;
+    // final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
+    // final Canvas canvas = Canvas(pictureRecorder);
+    // final Paint paint1 = Paint()..color = color[400];
+    // final Paint paint2 = Paint()..color = color[300];
+    // final Paint paint3 = Paint()..color = color[100];
+    // final int size = aggregationSetup.markerSize;
+    // canvas.drawCircle(Offset(size / 2, size / 2), size / 2.0, paint3);
+    // canvas.drawCircle(Offset(size / 2, size / 2), size / 2.4, paint2);
+    // canvas.drawCircle(Offset(size / 2, size / 2), size / 3.3, paint1);
+    // TextPainter painter = TextPainter(textDirection: TextDirection.ltr);
+    // painter.text = TextSpan(
+    //   text: text,
+    //   style: TextStyle(
+    //       fontSize: size / 4, color: Colors.black, fontWeight: FontWeight.bold),
+    // );
+    // painter.layout();
+    // painter.paint(
+    //   canvas,
+    //   Offset(size / 2 - painter.width / 2, size / 2 - painter.height / 2),
+    // );
   }
 
   MaterialColor getColor(int count) {
