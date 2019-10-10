@@ -4,15 +4,18 @@ class AggregatedPoints {
   final LatLng location;
   final int count;
   String bitmabAssetName;
+  final int id;
 
-  AggregatedPoints(this.location, this.count) {
+  AggregatedPoints(this.location, this.count, this.id) {
     this.bitmabAssetName = getBitmapDescriptor();
   }
 
   AggregatedPoints.fromMap(
       Map<String, dynamic> map, String dbLatColumn, String dbLongColumn)
       : count = map['n_marker'],
-        this.location = LatLng(map['lat'], map['long']) {
+        this.location = LatLng(map['lat'], map['long']),
+        this.id = int.parse(map['ids'].split(',')[0].replaceAll('[', '')) {
+    print(int.parse(map['ids'].split(',')[0].replaceAll('[', '')));
     this.bitmabAssetName = getBitmapDescriptor();
   }
 
@@ -44,9 +47,14 @@ class AggregatedPoints {
   }
 
   getId() {
-    return location.latitude.toString() +
-        "_" +
-        location.longitude.toString() +
-        "_$count";
+    return count > 1
+        ? location.latitude.toString() +
+            "_" +
+            location.longitude.toString() +
+            "_$count"
+        : location.latitude.toString() +
+            "_" +
+            location.longitude.toString() +
+            "_id:$id";
   }
 }

@@ -16,7 +16,6 @@ class DBHelper {
     String whereClause = "",
   }) async {
     assert(() {
-      print("--------- START QUERY AGGREGATION");
       return true;
     }());
     try {
@@ -30,13 +29,14 @@ class DBHelper {
         dbLatColumn,
         dbLongColumn,
       );
+      var idColumn = "id";
 
       whereClause = whereClause.isEmpty
           ? "WHERE $boundingBoxClause"
           : "$whereClause AND $boundingBoxClause";
 
       final query =
-          'SELECT COUNT(*) as n_marker, AVG($dbLatColumn) as lat, AVG($dbLongColumn) as long '
+          'SELECT GROUP_CONCAT($idColumn, ",") as ids, COUNT(*) as n_marker, AVG($dbLatColumn) as lat, AVG($dbLongColumn) as long '
           'FROM $dbTable $whereClause GROUP BY substr($dbGeohashColumn,1,$level);';
       assert(() {
         print(query);
@@ -69,16 +69,18 @@ class DBHelper {
     }
   }
 
-  static Future<List<LatLngAndGeohash>> getPoints(
-      {@required Database database,
-      @required String dbTable,
-      @required String dbLatColumn,
-      @required String dbLongColumn,
-      String whereClause = ""}) async {
+  static Future<List<LatLngAndGeohash>> getPoints({
+    @required Database database,
+    @required String dbTable,
+    @required String dbLatColumn,
+    @required String dbLongColumn,
+    String whereClause = "",
+    String idColumn = "id",
+  }) async {
     try {
-      var result = await database
-          .rawQuery('SELECT $dbLatColumn as lat, $dbLongColumn as long '
-              'FROM $dbTable $whereClause;');
+      var result = await database.rawQuery(
+          'SELECT $idColumn as id, $dbLatColumn as lat, $dbLongColumn as long '
+          'FROM $dbTable $whereClause;');
       List<LatLngAndGeohash> points = new List();
       for (Map<String, dynamic> item in result) {
         var p = new LatLngAndGeohash.fromMap(item);
