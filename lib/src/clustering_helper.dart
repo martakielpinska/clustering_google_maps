@@ -45,8 +45,8 @@ class ClusteringHelper {
         assert(aggregationSetup != null);
 
   //function for retrieving custom marker
-  Future<BitmapDescriptor> Function(
-      String color, String number, AggregatedPoints a) getBitmapMarker;
+  Future<BitmapDescriptor> Function(String color, String number, String id)
+      getBitmapMarker;
   //custom onTap handler
   void Function(String markerId) onMarkerTapped;
   //Default light pin in custom style
@@ -252,9 +252,10 @@ class ClusteringHelper {
 
       if (getBitmapMarker != null) {
         if (a.count == 1) {
-          bitmapDescriptor = await getBitmapMarker("light", "", a);
+          bitmapDescriptor = await getBitmapMarker("light", "", a.getId());
         } else {
-          bitmapDescriptor = await getBitmapMarker("light", "${a.count}", a);
+          bitmapDescriptor =
+              await getBitmapMarker("light", "${a.count}", a.getId());
         }
       } else {
         if (a.count == 1) {
@@ -315,42 +316,32 @@ class ClusteringHelper {
         listOfPoints = list;
       }
 
-      final Set<Marker> markers = listOfPoints.map((p) {
-        final MarkerId markerId = MarkerId(p.getId());
-        final BitmapDescriptor icon = genericPin != null
-            ? genericPin
-            : (bitmapAssetPathForSingleMarker != null
-                ? BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker)
-                : BitmapDescriptor.defaultMarker);
-        // var marker;
-        // if (onMarkerTapped == null) {
-        //   marker = Marker(
-        //     markerId: markerId,
-        //     position: p.location,
-        //     infoWindow: InfoWindow(
-        //         title:
-        //             "${p.location.latitude.toStringAsFixed(2)},${p.location.longitude.toStringAsFixed(2)}"),
-        //     icon: icon,
-        //   );
-        // } else {
-        //   marker = Marker(
-        //     markerId: markerId,
-        //     position: p.location,
-        //     onTap: () {
-        //       onMarkerTapped(markerId.value);
-        //     },
-        //     icon: icon,
-        //   );
-        // }
-        return Marker(
+      List<Marker> markersList = [];
+      for (LatLngAndGeohash point in listOfPoints) {
+        final MarkerId markerId = MarkerId(point.getId());
+
+        var icon;
+        if (getBitmapMarker != null) {
+          icon = await getBitmapMarker("light", "", markerId.value);
+        } else {
+          icon = genericPin != null
+              ? genericPin
+              : (bitmapAssetPathForSingleMarker != null
+                  ? BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker)
+                  : BitmapDescriptor.defaultMarker);
+        }
+        markersList.add(Marker(
           markerId: markerId,
-          position: p.location,
+          position: point.location,
           onTap: () {
             if (markerId != null) onMarkerTapped(markerId.value);
           },
           icon: icon,
-        );
-      }).toSet();
+        ));
+      }
+
+      Set<Marker> markers = markersList.toSet();
+
       updateMarkers(markers);
     } catch (ex) {
       assert(() {
