@@ -45,10 +45,10 @@ class ClusteringHelper {
         assert(aggregationSetup != null);
 
   //function for retrieving custom marker
-  Future<BitmapDescriptor> Function(String color, String number, String id)
-      getBitmapMarker;
+  Future<BitmapDescriptor> Function(String color, String number, String id,
+      {LatLngAndGeohash point}) getBitmapMarker;
   //custom onTap handler
-  void Function(String markerId) onMarkerTapped;
+  void Function(String markerId, LatLngAndGeohash point) onMarkerTapped;
   //Default light pin in custom style
   BitmapDescriptor genericPin;
 
@@ -129,11 +129,6 @@ class ClusteringHelper {
   }
 
   Future<List<AggregatedPoints>> getAggregatedPoints(double zoom) async {
-    assert(() {
-      print("loading aggregation");
-      return true;
-    }());
-
     int level = 5;
 
     if (zoom <= aggregationSetup.maxZoomLimits[0]) {
@@ -204,11 +199,6 @@ class ClusteringHelper {
       List<LatLngAndGeohash> inputList,
       List<AggregatedPoints> resultList,
       int level) {
-    assert(() {
-      print("input list lenght: " + inputList.length.toString());
-      return true;
-    }());
-
     if (inputList.isEmpty) {
       return resultList;
     }
@@ -226,7 +216,7 @@ class ClusteringHelper {
     });
     final count = tmp.length;
     final a = AggregatedPoints(
-        LatLng(latitude / count, longitude / count), count, 199);
+        LatLng(latitude / count, longitude / count), count, null);
     resultList.add(a);
     return _retrieveAggregatedPoints(newInputList, resultList, level);
   }
@@ -234,25 +224,18 @@ class ClusteringHelper {
   Future<void> updateAggregatedPoints({double zoom = 0.0}) async {
     List<AggregatedPoints> aggregation = await getAggregatedPoints(zoom);
 
-    assert(() {
-      print("aggregation lenght: " + aggregation.length.toString());
-      return true;
-    }());
-
     final Set<Marker> markers = {};
 
     for (var i = 0; i < aggregation.length; i++) {
       final a = aggregation[i];
-      assert(() {
-        print(a.count);
-        return true;
-      }());
 
       BitmapDescriptor bitmapDescriptor;
 
       if (getBitmapMarker != null) {
         if (a.count == 1) {
-          bitmapDescriptor = await getBitmapMarker("light", "", a.getId());
+          bitmapDescriptor = await getBitmapMarker("light", "", null,
+              point: LatLngAndGeohash.fromMap(
+                  a.rawData, dbLatColumn, dbLongColumn));
         } else {
           bitmapDescriptor =
               await getBitmapMarker("light", "${a.count}", a.getId());
@@ -288,7 +271,7 @@ class ClusteringHelper {
             position: a.location,
             icon: bitmapDescriptor,
             onTap: () {
-              onMarkerTapped(markerId.value);
+              onMarkerTapped(markerId.value, null);
             });
       }
 
@@ -298,11 +281,6 @@ class ClusteringHelper {
   }
 
   updatePoints(double zoom) async {
-    assert(() {
-      print("update single points");
-      return true;
-    }());
-
     final latLngBounds = await mapController.getVisibleRegion();
     try {
       List<LatLngAndGeohash> listOfPoints;
@@ -325,7 +303,8 @@ class ClusteringHelper {
 
         var icon;
         if (getBitmapMarker != null) {
-          icon = await getBitmapMarker("light", "", markerId.value);
+          icon =
+              await getBitmapMarker("light", "", markerId.value, point: point);
         } else {
           icon = genericPin != null
               ? genericPin
@@ -337,7 +316,7 @@ class ClusteringHelper {
           markerId: markerId,
           position: point.location,
           onTap: () {
-            if (markerId != null) onMarkerTapped(markerId.value);
+            if (markerId != null) onMarkerTapped(markerId.value, point);
           },
           icon: icon,
         ));

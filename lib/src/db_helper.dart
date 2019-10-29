@@ -29,34 +29,21 @@ class DBHelper {
         dbLatColumn,
         dbLongColumn,
       );
-      var idColumn = "id";
-
-      whereClause =
-          whereClause.isEmpty ? "WHERE $boundingBoxClause" : "$whereClause AND $boundingBoxClause";
+      whereClause = whereClause.isEmpty
+          ? "WHERE $boundingBoxClause"
+          : "$whereClause AND $boundingBoxClause";
 
       final query =
-          'SELECT GROUP_CONCAT($idColumn, ",") as ids, COUNT(*) as n_marker, AVG($dbLatColumn) as lat, AVG($dbLongColumn) as long '
+          'SELECT *, COUNT(*) as n_marker, AVG($dbLatColumn) as lat_avg, AVG($dbLongColumn) as long_avg '
           'FROM $dbTable $whereClause GROUP BY substr($dbGeohashColumn,1,$level);';
-      assert(() {
-        print(query);
-        return true;
-      }());
       var result = await database.rawQuery(query);
 
       List<AggregatedPoints> aggregatedPoints = new List();
 
       for (Map<String, dynamic> item in result) {
-        assert(() {
-          print(item);
-          return true;
-        }());
         var p = new AggregatedPoints.fromMap(item, dbLatColumn, dbLongColumn);
         aggregatedPoints.add(p);
       }
-      assert(() {
-        print("--------- COMPLETE QUERY AGGREGATION");
-        return true;
-      }());
       return aggregatedPoints;
     } catch (e) {
       assert(() {
@@ -75,7 +62,6 @@ class DBHelper {
     @required String dbLongColumn,
     LatLngBounds latLngBounds,
     String whereClause = "",
-    String idColumn = "id",
   }) async {
     try {
       final String boundingBoxClause = buildBoundingBoxClause(
@@ -84,23 +70,18 @@ class DBHelper {
         dbLatColumn,
         dbLongColumn,
       );
-      var idColumn = "id";
 
-      whereClause =
-          whereClause.isEmpty ? "WHERE $boundingBoxClause" : "$whereClause AND $boundingBoxClause";
+      whereClause = whereClause.isEmpty
+          ? "WHERE $boundingBoxClause"
+          : "$whereClause AND $boundingBoxClause";
 
-      var result = await database
-          .rawQuery('SELECT $idColumn as id, $dbLatColumn as lat, $dbLongColumn as long '
-              'FROM $dbTable $whereClause;');
+      var result =
+          await database.rawQuery('SELECT * FROM $dbTable $whereClause;');
       List<LatLngAndGeohash> points = new List();
       for (Map<String, dynamic> item in result) {
-        var p = new LatLngAndGeohash.fromMap(item);
+        var p = LatLngAndGeohash.fromMap(item, dbLatColumn, dbLongColumn);
         points.add(p);
       }
-      assert(() {
-        print("--------- COMPLETE QUERY");
-        return true;
-      }());
 
       return points;
     } catch (e) {
@@ -114,10 +95,6 @@ class DBHelper {
 
   static String buildBoundingBoxClause(
       LatLngBounds latLngBounds, String dbTable, String dbLat, String dbLong) {
-    assert(() {
-      print(latLngBounds.toString());
-      return true;
-    }());
     final double leftTopLatitude = latLngBounds.northeast.latitude;
     final double leftTopLongitude = latLngBounds.southwest.longitude;
     final double rightBottomLatitude = latLngBounds.southwest.latitude;

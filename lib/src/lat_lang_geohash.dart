@@ -5,23 +5,21 @@ import 'package:geohash/geohash.dart';
 class LatLngAndGeohash {
   final LatLng location;
   String geohash;
-  final dynamic id;
+  final Map<String, dynamic> rawData;
 
-  LatLngAndGeohash(this.location, this.id) {
+  LatLngAndGeohash(this.location, this.rawData) {
     geohash = Geohash.encode(location.latitude, location.longitude);
   }
 
-  LatLngAndGeohash.fromMap(Map<String, dynamic> map)
-      : location = LatLng(map['lat'].toDouble(), map['long'].toDouble()),
-        this.id = map['id'] {
+  LatLngAndGeohash.fromMap(
+      Map<String, dynamic> map, String latKey, String longKey)
+      : location = LatLng(map[latKey].toDouble(), map[longKey].toDouble()),
+        rawData = map {
     this.geohash =
         Geohash.encode(this.location.latitude, this.location.longitude);
   }
 
   getId() {
-    return location.latitude.toString() +
-        "_" +
-        location.longitude.toString() +
-        "_id:$id";
+    return location.latitude.toString() + "_" + location.longitude.toString();
   }
 }
