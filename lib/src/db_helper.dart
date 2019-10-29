@@ -31,9 +31,8 @@ class DBHelper {
       );
       var idColumn = "id";
 
-      whereClause = whereClause.isEmpty
-          ? "WHERE $boundingBoxClause"
-          : "$whereClause AND $boundingBoxClause";
+      whereClause =
+          whereClause.isEmpty ? "WHERE $boundingBoxClause" : "$whereClause AND $boundingBoxClause";
 
       final query =
           'SELECT GROUP_CONCAT($idColumn, ",") as ids, COUNT(*) as n_marker, AVG($dbLatColumn) as lat, AVG($dbLongColumn) as long '
@@ -74,13 +73,25 @@ class DBHelper {
     @required String dbTable,
     @required String dbLatColumn,
     @required String dbLongColumn,
+    LatLngBounds latLngBounds,
     String whereClause = "",
     String idColumn = "id",
   }) async {
     try {
-      var result = await database.rawQuery(
-          'SELECT $idColumn as id, $dbLatColumn as lat, $dbLongColumn as long '
-          'FROM $dbTable $whereClause;');
+      final String boundingBoxClause = buildBoundingBoxClause(
+        latLngBounds,
+        dbTable,
+        dbLatColumn,
+        dbLongColumn,
+      );
+      var idColumn = "id";
+
+      whereClause =
+          whereClause.isEmpty ? "WHERE $boundingBoxClause" : "$whereClause AND $boundingBoxClause";
+
+      var result = await database
+          .rawQuery('SELECT $idColumn as id, $dbLatColumn as lat, $dbLongColumn as long '
+              'FROM $dbTable $whereClause;');
       List<LatLngAndGeohash> points = new List();
       for (Map<String, dynamic> item in result) {
         var p = new LatLngAndGeohash.fromMap(item);

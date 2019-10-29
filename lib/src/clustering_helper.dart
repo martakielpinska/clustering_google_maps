@@ -303,15 +303,18 @@ class ClusteringHelper {
       return true;
     }());
 
+    final latLngBounds = await mapController.getVisibleRegion();
     try {
       List<LatLngAndGeohash> listOfPoints;
       if (database != null) {
         listOfPoints = await DBHelper.getPoints(
-            database: database,
-            dbTable: dbTable,
-            dbLatColumn: dbLatColumn,
-            dbLongColumn: dbLongColumn,
-            whereClause: whereClause);
+          database: database,
+          dbTable: dbTable,
+          dbLatColumn: dbLatColumn,
+          dbLongColumn: dbLongColumn,
+          whereClause: whereClause,
+          latLngBounds: latLngBounds,
+        );
       } else {
         listOfPoints = list;
       }
