@@ -7,6 +7,7 @@ import 'package:clustering_google_maps/src/db_helper.dart';
 import 'package:clustering_google_maps/src/lat_lang_geohash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
+import 'package:geohash/geohash.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:meta/meta.dart';
 import 'package:sqflite/sqflite.dart';
@@ -271,7 +272,14 @@ class ClusteringHelper {
             position: a.location,
             icon: bitmapDescriptor,
             onTap: () {
-              onMarkerTapped(markerId.value, null);
+              if (a.count == 1) {
+                onMarkerTapped(
+                    markerId.value,
+                    LatLngAndGeohash.fromMap(
+                        a.rawData, dbLatColumn, dbLongColumn));
+              } else {
+                onMarkerTapped(markerId.value, null);
+              }
             });
       }
 
