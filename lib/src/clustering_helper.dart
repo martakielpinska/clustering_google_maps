@@ -82,9 +82,6 @@ class ClusteringHelper {
 
   GoogleMapController mapController;
 
-  //Variable for save the last zoom
-  double _currentZoom = 0.0;
-
   //Function called when the map must show single point without aggregation
   // if null the class use the default function
   Function showSinglePoint;
@@ -99,9 +96,8 @@ class ClusteringHelper {
   //If you want updateMap during the zoom in/out set forceUpdate to true
   //this is NOT RECCOMENDED
   onCameraMove(CameraPosition position, {forceUpdate = false}) {
-    _currentZoom = position.zoom;
     if (forceUpdate) {
-      updateMap();
+      updateMap(zoom: position.zoom);
     }
   }
 
@@ -110,14 +106,17 @@ class ClusteringHelper {
     updateMap();
   }
 
-  updateMap() {
-    if (_currentZoom < maxZoomForAggregatePoints) {
-      updateAggregatedPoints(zoom: _currentZoom);
+  updateMap({double zoom}) async {
+    if (zoom == null) {
+      zoom = await mapController.getZoomLevel();
+    }
+    if (zoom < maxZoomForAggregatePoints) {
+      updateAggregatedPoints(zoom: zoom);
     } else {
       if (showSinglePoint != null) {
         showSinglePoint();
       } else {
-        updatePoints(_currentZoom);
+        updatePoints(zoom);
       }
     }
   }
