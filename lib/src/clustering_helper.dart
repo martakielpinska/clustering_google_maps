@@ -1,13 +1,13 @@
-import 'dart:typed_data';
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
+
 import 'package:clustering_google_maps/src/aggregated_points.dart';
 import 'package:clustering_google_maps/src/aggregation_setup.dart';
 import 'package:clustering_google_maps/src/db_helper.dart';
 import 'package:clustering_google_maps/src/lat_lang_geohash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:geohash/geohash.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:meta/meta.dart';
 import 'package:sqflite/sqflite.dart';
@@ -23,7 +23,6 @@ class ClusteringHelper {
     this.whereClause = "",
     @required this.aggregationSetup,
     this.maxZoomForAggregatePoints = 13.5,
-    this.bitmapAssetPathForSingleMarker,
     this.getBitmapMarker,
     this.genericPin,
     this.onMarkerTapped,
@@ -38,7 +37,6 @@ class ClusteringHelper {
     @required this.updateMarkers,
     this.maxZoomForAggregatePoints = 13.5,
     @required this.aggregationSetup,
-    this.bitmapAssetPathForSingleMarker,
     this.getBitmapMarker,
     this.onMarkerTapped,
     this.genericPin,
@@ -70,9 +68,6 @@ class ClusteringHelper {
 
   //Name of column where is stored the geohash value
   String dbGeohashColumn;
-
-  //Custom bitmap: string of assets position
-  final String bitmapAssetPathForSingleMarker;
 
   //Custom bitmap: string of assets position
   final AggregationSetup aggregationSetup;
@@ -181,7 +176,7 @@ class ClusteringHelper {
           return latQuery && longQuery;
         }).toList();
 
-        aggregatedPoints = _retrieveAggregatedPoints(listBounds, List(), level);
+        aggregatedPoints = _retrieveAggregatedPoints(listBounds, [], level);
       }
       return aggregatedPoints;
     } catch (e) {
@@ -189,7 +184,7 @@ class ClusteringHelper {
         print(e.toString());
         return true;
       }());
-      return List<AggregatedPoints>();
+      return <AggregatedPoints>[];
     }
   }
 
@@ -242,12 +237,7 @@ class ClusteringHelper {
         }
       } else {
         if (a.count == 1) {
-          if (bitmapAssetPathForSingleMarker != null) {
-            bitmapDescriptor =
-                BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker);
-          } else {
-            bitmapDescriptor = BitmapDescriptor.defaultMarker;
-          }
+          bitmapDescriptor = BitmapDescriptor.defaultMarker;
         } else {
           // >1
           final Uint8List markerIcon =
@@ -313,11 +303,8 @@ class ClusteringHelper {
           icon =
               await getBitmapMarker("light", "", markerId.value, point: point);
         } else {
-          icon = genericPin != null
-              ? genericPin
-              : (bitmapAssetPathForSingleMarker != null
-                  ? BitmapDescriptor.fromAsset(bitmapAssetPathForSingleMarker)
-                  : BitmapDescriptor.defaultMarker);
+          icon =
+              genericPin != null ? genericPin : BitmapDescriptor.defaultMarker;
         }
         markersList.add(Marker(
           markerId: markerId,
